@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>JARVIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<div class="jarvis-root" id="jarvisRoot" data-state="idle">
+
+  <!-- Ambient layers -->
+  <div class="ambient-grid"></div>
+  <div class="scanlines"></div>
+  <div class="vignette"></div>
+
+  <!-- Corner HUD brackets -->
+  <div class="hud-corner tl"></div>
+  <div class="hud-corner tr"></div>
+  <div class="hud-corner bl"></div>
+  <div class="hud-corner br"></div>
+
+  <!-- ████████  AUTH OVERLAY  ████████ -->
+  <div class="auth-overlay hidden" id="authOverlay" hidden style="display:none">
+    <div class="auth-card">
+      <div class="auth-reactor">
+        <svg viewBox="0 0 120 120" width="90" height="90">
+          <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(0,243,255,.15)" stroke-width="1"/>
+          <circle cx="60" cy="60" r="42" fill="none" stroke="#00f3ff" stroke-width="1.5"
+            stroke-dasharray="60 204" stroke-linecap="round" class="auth-arc-1"/>
+          <circle cx="60" cy="60" r="30" fill="none" stroke="#00a8ff" stroke-width="2"
+            stroke-dasharray="35 153" stroke-linecap="round" class="auth-arc-2"/>
+          <polygon points="60,22 82,35 82,61 60,74 38,61 38,35"
+            fill="rgba(0,243,255,.08)" stroke="#00f3ff" stroke-width="1"/>
+          <circle cx="60" cy="48" r="9" fill="rgba(0,243,255,.3)" stroke="#00f3ff" stroke-width="1"/>
+          <circle cx="60" cy="48" r="4" fill="#00f3ff"/>
+        </svg>
+      </div>
+      <div class="auth-brand">J.A.R.V.I.S</div>
+      <div class="auth-subtitle">VOICE CONTROL SYSTEM</div>
+      <div class="auth-desc">
+        Connect your Puter account to activate AI capabilities.<br>
+        Free — no API key required.
+      </div>
+      <button class="auth-btn" id="authBtn">
+        <span class="auth-btn-icon">◈</span>
+        CONNECT PUTER ACCOUNT
+      </button>
+      <div class="auth-status" id="authStatus"></div>
+      <div class="auth-skip-note">Voice commands work without sign-in. AI chat requires a Puter account.</div>
+    </div>
+  </div>
+
+  <!-- ████████  HEADER  ████████ -->
+  <header class="hud-header">
+    <div class="hdr-left">
+      <div class="status-pip" id="statusPip"></div>
+      <span class="brand">J.A.R.V.I.S</span>
+    </div>
+    <div class="hdr-center">
+      <span class="state-label" id="stateLabel">IDLE</span>
+    </div>
+    <div class="hdr-right">
+      <span class="puter-badge" id="puterBadge" title="Puter AI Status">AI: OFFLINE</span>
+    </div>
+  </header>
+
+  <!-- ████████  TAB NAV  ████████ -->
+  <nav class="tab-nav" id="tabNav">
+    <button class="tab-btn active" data-tab="hud">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+      HUD
+    </button>
+    <button class="tab-btn" data-tab="chat">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      CHAT
+    </button>
+    <button class="tab-btn" data-tab="log">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      LOG
+    </button>
+    <button class="tab-btn" data-tab="settings">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07m14.14 0A10 10 0 0 0 4.93 4.93"/></svg>
+      CONFIG
+    </button>
+  </nav>
+
+  <!-- ████████  PANEL: HUD  ████████ -->
+  <section class="tab-panel active" id="tab-hud">
+
+    <!-- Arc Reactor -->
+    <div class="reactor-wrap">
+      <div class="reactor" id="reactor">
+
+        <!-- Outer data rings -->
+        <div class="ring r-data-outer" id="rDataOuter"></div>
+
+        <!-- SVG arc layers -->
+        <svg class="arc-svg arc-l1" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="100" fill="none" stroke="#00f3ff" stroke-width="1.5"
+            stroke-dasharray="130 498" stroke-linecap="round" opacity=".85"/>
+          <circle cx="110" cy="110" r="100" fill="none" stroke="#00f3ff" stroke-width=".6"
+            stroke-dasharray="45 583" stroke-linecap="round" opacity=".4"/>
+        </svg>
+        <svg class="arc-svg arc-l2" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="84" fill="none" stroke="#00a8ff" stroke-width="2"
+            stroke-dasharray="70 458" stroke-linecap="round" opacity=".9"/>
+          <circle cx="110" cy="110" r="84" fill="none" stroke="#fff" stroke-width=".5"
+            stroke-dasharray="22 506" stroke-linecap="round" opacity=".25"/>
+        </svg>
+        <svg class="arc-svg arc-l3" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="68" fill="none" stroke="#00f3ff" stroke-width="1"
+            stroke-dasharray="90 337" stroke-linecap="round" opacity=".6"/>
+        </svg>
+
+        <!-- Tick ring -->
+        <svg class="arc-svg tick-svg" viewBox="0 0 220 220" id="tickSvg"></svg>
+
+        <!-- Core -->
+        <div class="core" id="core">
+          <div class="core-glow"></div>
+          <svg class="hex-svg" viewBox="0 0 100 100" id="hexSvg">
+            <polygon id="hexOuter" points="50,5 91,28 91,72 50,95 9,72 9,28"
+              fill="rgba(0,243,255,.07)" stroke="#00f3ff" stroke-width="1.8"/>
+            <polygon id="hexInner" points="50,18 78,34 78,66 50,82 22,66 22,34"
+              fill="rgba(0,168,255,.1)" stroke="#00a8ff" stroke-width="1.2"/>
+            <circle cx="50" cy="50" r="16" fill="rgba(0,243,255,.18)" stroke="#00f3ff" stroke-width="1.5"/>
+            <circle cx="50" cy="50" r="8" fill="rgba(0,243,255,.55)"/>
+            <circle cx="50" cy="50" r="3.5" fill="#fff" opacity=".9"/>
+          </svg>
+        </div>
+
+        <!-- State text floating below core -->
+        <div class="reactor-state-text" id="reactorStateTxt">IDLE</div>
+      </div>
+    </div>
+
+    <!-- Waveform -->
+    <div class="waveform" id="waveform">
+      <div class="wb" style="--i:0"></div><div class="wb" style="--i:1"></div>
+      <div class="wb" style="--i:2"></div><div class="wb" style="--i:3"></div>
+      <div class="wb" style="--i:4"></div><div class="wb" style="--i:5"></div>
+      <div class="wb" style="--i:6"></div><div class="wb" style="--i:7"></div>
+      <div class="wb" style="--i:8"></div><div class="wb" style="--i:9"></div>
+      <div class="wb" style="--i:10"></div><div class="wb" style="--i:11"></div>
+      <div class="wb" style="--i:12"></div><div class="wb" style="--i:13"></div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-k">SYS</span><span class="stat-v" id="sv-sys">NOMINAL</span></div>
+      <div class="stat-sep"></div>
+      <div class="stat"><span class="stat-k">MIC</span><span class="stat-v" id="sv-mic">OFF</span></div>
+      <div class="stat-sep"></div>
+      <div class="stat"><span class="stat-k">AI</span><span class="stat-v" id="sv-ai">READY</span></div>
+      <div class="stat-sep"></div>
+      <div class="stat"><span class="stat-k">TTS</span><span class="stat-v" id="sv-tts">IDLE</span></div>
+    </div>
+
+    <!-- Mic button -->
+    <button class="mic-btn" id="micBtn" title="Toggle voice recognition">
+      <div class="mic-ring mic-ring-outer"></div>
+      <div class="mic-ring mic-ring-inner"></div>
+      <div class="mic-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </div>
+      <span class="mic-label" id="micLabel">ACTIVATE</span>
+    </button>
+
+    <!-- Last heard display -->
+    <div class="last-heard" id="lastHeard"></div>
+
+  </section>
+
+  <!-- ████████  PANEL: CHAT  ████████ -->
+  <section class="tab-panel" id="tab-chat">
+    <div class="chat-feed" id="chatFeed">
+      <div class="msg jarvis">
+        <div class="msg-label">JARVIS</div>
+        <div class="msg-bubble">Good day. All systems are online. How may I assist you?</div>
+      </div>
+    </div>
+    <div class="chat-bar">
+      <div class="chat-field">
+        <span class="chat-prompt">›</span>
+        <input id="chatInput" class="chat-input" type="text"
+          placeholder="Command or question…" autocomplete="off" spellcheck="false"/>
+      </div>
+      <button class="chat-send" id="chatSend" title="Send">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+      <button class="chat-mic-btn" id="chatMicBtn" title="Voice input">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        </svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ████████  PANEL: LOG  ████████ -->
+  <section class="tab-panel" id="tab-log">
+    <div class="log-topbar">
+      <span class="log-title">SYSTEM LOG</span>
+      <div class="log-actions">
+        <button class="log-btn" id="clearLogBtn">CLEAR</button>
+      </div>
+    </div>
+    <div class="log-feed" id="logFeed">
+      <div class="log-row info">
+        <span class="log-ts" id="bootTs"></span>
+        <span class="log-msg">JARVIS v2.0 boot sequence complete</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ████████  PANEL: SETTINGS  ████████ -->
+  <section class="tab-panel" id="tab-settings">
+    <div class="settings-body">
+
+      <!-- AI Section -->
+      <div class="cfg-section">
+        <div class="cfg-head">AI MODEL</div>
+        <div class="model-list" id="modelList">
+          <label class="model-row active" data-val="ling-3.0-flash">
+            <input type="radio" name="model" value="ling-3.0-flash" checked>
+            <div class="model-dot"></div>
+            <div class="model-txt">
+              <span class="model-name">LING 3.0 FLASH</span>
+              <span class="model-sub">InclusionAI · Free · Fastest</span>
+            </div>
+            <span class="model-tag free">FREE</span>
+          </label>
+          <label class="model-row" data-val="gpt-4o-mini">
+            <input type="radio" name="model" value="gpt-4o-mini">
+            <div class="model-dot"></div>
+            <div class="model-txt">
+              <span class="model-name">GPT-4o MINI</span>
+              <span class="model-sub">OpenAI · Balanced</span>
+            </div>
+            <span class="model-tag">PLUS</span>
+          </label>
+          <label class="model-row" data-val="claude-3-5-sonnet">
+            <input type="radio" name="model" value="claude-3-5-sonnet">
+            <div class="model-dot"></div>
+            <div class="model-txt">
+              <span class="model-name">CLAUDE 3.5 SONNET</span>
+              <span class="model-sub">Anthropic · Advanced</span>
+            </div>
+            <span class="model-tag">PRO</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Puter Auth Section -->
+      <div class="cfg-section">
+        <div class="cfg-head">PUTER ACCOUNT</div>
+        <div class="auth-row" id="authRow">
+          <div class="auth-info" id="authInfo">Not connected</div>
+          <button class="auth-action-btn" id="authActionBtn">CONNECT</button>
+        </div>
+      </div>
+
+      <!-- Voice Section -->
+      <div class="cfg-section">
+        <div class="cfg-head">VOICE</div>
+        <div class="cfg-row">
+          <span class="cfg-lbl">Speech Rate</span>
+          <div class="slider-grp">
+            <input type="range" id="rateSlider" min="0.5" max="2.0" step="0.1" value="1.1">
+            <span class="slider-out" id="rateOut">1.1×</span>
+          </div>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-lbl">Pitch</span>
+          <div class="slider-grp">
+            <input type="range" id="pitchSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+            <span class="slider-out" id="pitchOut">1.0</span>
+          </div>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-lbl">Language</span>
+          <select class="hud-sel" id="langSel">
+            <option value="en-US">English (US)</option>
+            <option value="en-GB">English (UK)</option>
+            <option value="sk-SK">Slovak</option>
+            <option value="cs-CZ">Czech</option>
+            <option value="de-DE">German</option>
+            <option value="fr-FR">French</option>
+            <option value="es-ES">Spanish</option>
+          </select>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-lbl">Speak AI responses</span>
+          <label class="toggle"><input type="checkbox" id="tglSpeak" checked><span class="tgl-track"></span></label>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-lbl">Continuous mode</span>
+          <label class="toggle"><input type="checkbox" id="tglContinuous"><span class="tgl-track"></span></label>
+        </div>
+      </div>
+
+      <!-- System Section -->
+      <div class="cfg-section">
+        <div class="cfg-head">SYSTEM</div>
+        <div class="cfg-row">
+          <span class="cfg-lbl">Wakeword prefix</span>
+          <input type="text" class="hud-txt" id="wakewordInput" value="jarvis" maxlength="20">
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-lbl">Page HUD indicator</span>
+          <label class="toggle"><input type="checkbox" id="tglIndicator" checked><span class="tgl-track"></span></label>
+        </div>
+      </div>
+
+      <!-- Commands Quick Ref -->
+      <div class="cfg-section">
+        <div class="cfg-head">COMMANDS REFERENCE</div>
+        <div class="cmds-grid">
+          <div class="cmd-chip">"Open YouTube"</div>
+          <div class="cmd-chip">"New tab"</div>
+          <div class="cmd-chip">"Close tab"</div>
+          <div class="cmd-chip">"Scroll down"</div>
+          <div class="cmd-chip">"Scroll up"</div>
+          <div class="cmd-chip">"Go back"</div>
+          <div class="cmd-chip">"Reload"</div>
+          <div class="cmd-chip">"Zoom in"</div>
+          <div class="cmd-chip">"Bookmark"</div>
+          <div class="cmd-chip">"What time is it"</div>
+          <div class="cmd-chip">"Status report"</div>
+          <div class="cmd-chip">"Any question →AI"</div>
+        </div>
+      </div>
+
+      <button class="save-cfg-btn" id="saveCfgBtn">SAVE CONFIGURATION</button>
+    </div>
+  </section>
+
+  <!-- ████████  FOOTER  ████████ -->
+  <footer class="hud-footer">
+    <span class="footer-brand">STARK INDUSTRIES · JARVIS v2.0</span>
+    <span class="footer-dot"></span>
+  </footer>
+
+</div><!-- /jarvis-root -->
+
+<!-- Local Puter.js SDK — bundled, no CSP issues -->
+<script src="puter.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>
