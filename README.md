@@ -76,7 +76,8 @@ Everything runs locally in the extension. There is no separate backend, no telem
 2. Unzip somewhere permanent (Chrome loads the folder in place).
 3. Open `chrome://extensions` and turn on **Developer mode** (top‑right).
 4. Click **Load unpacked** and pick the unzipped `J.A.R.V.I.S-1.0.0` folder.
-5. Pin the JARVIS icon to the toolbar and click it — the HUD opens.
+5. Open https://puter.com/ and sign in, keep it open until you open Jarvis.
+6. Pin the JARVIS icon to the toolbar and click it — the HUD opens.
 
 ### Option B — Drag & drop (packed)
 
