@@ -37,7 +37,6 @@
 - [Architecture](#architecture)
 - [Troubleshooting](#troubleshooting)
 - [Privacy](#privacy)
-- [Changelog](#changelog)
 - [License](#license)
 
 ---
