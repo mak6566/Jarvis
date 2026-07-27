@@ -40,7 +40,8 @@
       <div class="auth-subtitle">VOICE CONTROL SYSTEM</div>
       <div class="auth-desc">
         Connect your Puter account to activate AI capabilities.<br>
-        Free — no API key required.
+        Free — no API key required.<br>
+        <span style="opacity:.65;font-size:11px">Clicking below opens Puter's login page in a new tab.</span>
       </div>
       <button class="auth-btn" id="authBtn">
         <span class="auth-btn-icon">◈</span>
@@ -217,7 +218,7 @@
     <div class="log-feed" id="logFeed">
       <div class="log-row info">
         <span class="log-ts" id="bootTs"></span>
-        <span class="log-msg">JARVIS v2.0 boot sequence complete</span>
+        <span class="log-msg">JARVIS v1.0 boot sequence complete</span>
       </div>
     </div>
   </section>
@@ -230,8 +231,8 @@
       <div class="cfg-section">
         <div class="cfg-head">AI MODEL</div>
         <div class="model-list" id="modelList">
-          <label class="model-row active" data-val="ling-3.0-flash">
-            <input type="radio" name="model" value="ling-3.0-flash" checked>
+          <label class="model-row active" data-val="inclusionai/ling-3.0-flash:free">
+            <input type="radio" name="model" value="inclusionai/ling-3.0-flash:free" checked>
             <div class="model-dot"></div>
             <div class="model-txt">
               <span class="model-name">LING 3.0 FLASH</span>
@@ -239,8 +240,8 @@
             </div>
             <span class="model-tag free">FREE</span>
           </label>
-          <label class="model-row" data-val="gpt-4o-mini">
-            <input type="radio" name="model" value="gpt-4o-mini">
+          <label class="model-row" data-val="openai/gpt-4o-mini">
+            <input type="radio" name="model" value="openai/gpt-4o-mini">
             <div class="model-dot"></div>
             <div class="model-txt">
               <span class="model-name">GPT-4o MINI</span>
@@ -257,7 +258,16 @@
             </div>
             <span class="model-tag">PRO</span>
           </label>
+          <label class="model-row" data-val="__custom__">
+            <input type="radio" name="model" value="__custom__">
+            <div class="model-dot"></div>
+            <div class="model-txt">
+              <span class="model-name">CUSTOM MODEL ID</span>
+              <span class="model-sub">Puter's model catalog changes often — paste any valid id</span>
+            </div>
+          </label>
         </div>
+        <input type="text" id="customModelInput" class="custom-model-input" placeholder="napr. openai/gpt-5.5 alebo anthropic/claude-opus-4-8" style="display:none" />
       </div>
 
       <!-- Puter Auth Section -->
@@ -346,7 +356,7 @@
 
   <!-- ████████  FOOTER  ████████ -->
   <footer class="hud-footer">
-    <span class="footer-brand">STARK INDUSTRIES · JARVIS v2.0</span>
+    <span class="footer-brand">STARK INDUSTRIES · JARVIS v1.0</span>
     <span class="footer-dot"></span>
   </footer>
 

@@ -1,18 +1,23 @@
 {
   "manifest_version": 3,
   "name": "JARVIS - Voice Control System",
-  "version": "2.0.0",
-  "description": "AI-powered voice assistant with Iron Man HUD. Puter.js AI · No API key needed.",
+  "version": "1.0.0",
+  "description": "AI-powered voice assistant with Iron Man HUD. Full hands-free browser control. Puter.js AI · No API key needed.",
   "permissions": [
     "activeTab",
     "scripting",
     "tabs",
     "storage",
-    "bookmarks"
+    "bookmarks",
+    "offscreen",
+    "sessions"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://*.puter.com https://js.puter.com wss://*.puter.com; frame-src https://*.puter.com; img-src 'self' data: https://*.puter.com;"
+  },
   "background": {
     "service_worker": "background.js"
   },
@@ -38,3 +43,4 @@
     "128": "icons/icon128.png"
   }
 }
+

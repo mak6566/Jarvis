@@ -827,3 +827,53 @@ input[type="range"]::-webkit-slider-thumb {
   background: var(--c-cyan); box-shadow: var(--glow-s);
   animation: pipPulse 1.6s ease-in-out infinite;
 }
+
+/* ── v1.0 sci-fi FX: scanlines, grain, boot flicker ───────────── */
+#jarvisRoot::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 9998;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0,243,255,0.035) 0px,
+      rgba(0,243,255,0.035) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  mix-blend-mode: screen;
+  opacity: .55;
+  animation: scanDrift 8s linear infinite;
+}
+#jarvisRoot::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 9999;
+  background-image: radial-gradient(rgba(0,243,255,0.06) 1px, transparent 1px);
+  background-size: 3px 3px;
+  opacity: .35;
+  animation: grainShift .5s steps(3) infinite;
+}
+@keyframes scanDrift { from { background-position-y: 0; } to { background-position-y: 6px; } }
+@keyframes grainShift {
+  0% { transform: translate(0,0); }
+  33% { transform: translate(-1px,1px); }
+  66% { transform: translate(1px,-1px); }
+  100% { transform: translate(0,0); }
+}
+@keyframes bootFlicker {
+  0% { opacity: 0; filter: brightness(3); }
+  10% { opacity: .6; }
+  15% { opacity: .2; }
+  25% { opacity: 1; filter: brightness(1.4); }
+  30% { opacity: .5; }
+  100% { opacity: 1; filter: brightness(1); }
+}
+#jarvisRoot { position: relative; overflow: hidden; animation: bootFlicker 1.1s ease-out both; }
+
+/* Command execution flash on the reactor */
+@keyframes cmdFlash {
+  0% { box-shadow: 0 0 0 0 rgba(0,243,255,.6); }
+  100% { box-shadow: 0 0 0 40px rgba(0,243,255,0); }
+}
+.cmd-flash { animation: cmdFlash .6s ease-out; }

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>JARVIS — Microphone Permission</title>
+<style>
+  body {
+    background: #080b10;
+    color: #d7f8ff;
+    font-family: "Consolas", "Courier New", monospace;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+  }
+  .box {
+    text-align: center;
+    max-width: 440px;
+    padding: 32px;
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    border-radius: 10px;
+    background: #0d1117;
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.08);
+  }
+  h1 {
+    color: #00f3ff;
+    letter-spacing: 2px;
+    font-size: 18px;
+    text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+  }
+  p { font-size: 13px; color: #9fdfe8; line-height: 1.6; }
+  button {
+    background: rgba(0, 243, 255, 0.12);
+    border: 1px solid #00f3ff;
+    color: #00f3ff;
+    padding: 12px 24px;
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 16px;
+  }
+  button:hover { background: rgba(0, 243, 255, 0.22); }
+  #status { margin-top: 18px; font-size: 12px; min-height: 18px; }
+  .ok { color: #4dff9e; }
+  .err { color: #ff4d5e; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>JARVIS — MICROPHONE PERMISSION</h1>
+    <p>
+      For JARVIS to listen to voice commands, the browser needs a one-time
+      permission to access the microphone for this extension. Click the button
+      below and confirm the permission in the browser bar at the top.
+    </p>
+    <button id="grantBtn" data-testid="grant-mic-btn">ENABLE MICROPHONE</button>
+    <div id="status" data-testid="mic-permission-status"></div>
+  </div>
+  <script src="mic-permission.js"></script>
+</body>
+</html>
