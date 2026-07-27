@@ -377,28 +377,6 @@ Change **Settings → Language** to a locale code your Chrome supports (`en-US`,
 
 ---
 
-## Changelog
-
-### v1.0.0 (2026)
-
-- **Fixed Puter login.** The extension now opens `puter.com/?action=authme`, which disables Puter's guest auto‑account and always shows the real login form. Guest / temporary tokens are explicitly rejected on both startup and connect. This fixes the *"AI error: unauthorized"* / *"nothing happens when I click Sign In"* bug.
-- Faster login polling (500ms during the first 15 s, then 2 s) so the tab closes almost immediately after login.
-- `AI: <username>` badge now has a tooltip showing the full username.
-- Auth overlay copy clarified — users are told a Puter tab will open.
-- Full README rewrite.
-
-### v2.4.0 (2025)
-
-- 30+ voice commands (link‑hints, media control, click/type by text, read‑the‑page, browser internal pages).
-- Search shortcuts, tab management by number, media speed control.
-- Continuous listening + wake‑word mode.
-
-### v2.0.0
-
-- Initial Iron Man HUD, Puter.js AI chat, TTS, 4‑tab layout.
-
----
-
 ## License
 
 MIT © 2026 — Stark Industries fan project. Iron Man, JARVIS and the arc reactor are trademarks of Marvel; this project is not affiliated with or endorsed by Marvel Studios.
