@@ -91,10 +91,9 @@ Everything runs locally in the extension. There is no separate backend, no telem
 
 On first launch you'll see the **CONNECT PUTER ACCOUNT** overlay.
 
-1. Click **CONNECT PUTER ACCOUNT**.
-2. A new tab opens on Puter's real login page (`puter.com/?action=authme`).
-3. Log in or create a free account (email + password — Google/Apple/Microsoft also work).
-4. The tab closes itself, the badge in the header flips to `AI: <YOUR‑USERNAME>`, and you're live.
+1. Open https://puter.com/ and if you don't have account sign in.
+2. Don't close the website and open extension.
+3. When it's open it should automatically log you in.
 
 The auth token is stored locally in `chrome.storage.local` and applied to the bundled Puter.js SDK — you'll only need to sign in once per machine.
 
