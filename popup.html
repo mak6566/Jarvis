@@ -41,7 +41,7 @@
       <div class="auth-desc">
         Connect your Puter account to activate AI capabilities.<br>
         Free — no API key required.<br>
-        <span style="opacity:.65;font-size:11px">Clicking below opens Puter's login page in a new tab.</span>
+        <span style="opacity:.65;font-size:11px">A puter.com tab will open — sign in there and JARVIS will pick it up automatically.</span>
       </div>
       <button class="auth-btn" id="authBtn">
         <span class="auth-btn-icon">◈</span>
@@ -324,6 +324,10 @@
         <div class="cfg-row">
           <span class="cfg-lbl">Wakeword prefix</span>
           <input type="text" class="hud-txt" id="wakewordInput" value="jarvis" maxlength="20">
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-lbl" title="Always-on mic — say the wake word to activate JARVIS">Wake-word activation</span>
+          <label class="toggle"><input type="checkbox" id="tglWakeActivation" checked><span class="tgl-track"></span></label>
         </div>
         <div class="cfg-row">
           <span class="cfg-lbl">Page HUD indicator</span>

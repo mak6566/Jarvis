@@ -2,6 +2,28 @@
 // Handles tab control commands from popup
 
 // ═══════════════════════════════════════════════════════════
+//  SIDE PANEL — open on toolbar-icon click
+// ═══════════════════════════════════════════════════════════
+// JARVIS lives inside Chrome's side panel (not the classic popup), so opening
+// puter.com in a new tab NO LONGER closes the extension UI. This is what makes
+// the Puter sign-in flow finally work reliably — the side panel remains open
+// across tab switches, so we can watch the user log in on puter.com and pick
+// up the token the instant it appears.
+try {
+  chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true })
+    .catch(() => {});
+} catch (_) {}
+
+// Fallback for browsers that ignore setPanelBehavior — open on click manually.
+chrome.action.onClicked.addListener(async (tab) => {
+  try {
+    if (tab?.windowId != null && chrome.sidePanel?.open) {
+      await chrome.sidePanel.open({ windowId: tab.windowId });
+    }
+  } catch (_) {}
+});
+
+// ═══════════════════════════════════════════════════════════
 //  OFFSCREEN DOCUMENT — microphone / SpeechRecognition
 // ═══════════════════════════════════════════════════════════
 // Chrome extension action popups cannot reliably capture the microphone
@@ -33,6 +55,58 @@ async function ensureOffscreenDocument() {
   }
 }
 
+async function closeOffscreenDocument() {
+  try {
+    const existing = await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] });
+    if (existing.length > 0) await chrome.offscreen.closeDocument();
+  } catch (_) { /* nothing to close */ }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MICROPHONE PERMISSION TAB — strictly single-instance
+// ═══════════════════════════════════════════════════════════
+const MIC_TAB_URL = chrome.runtime.getURL('mic-permission.html');
+let micTabId = null;
+let openingMicTab = null;
+
+async function openMicPermissionTab() {
+  if (openingMicTab) return openingMicTab;
+
+  openingMicTab = (async () => {
+    // 1) Reuse the tab we opened before, if it still exists.
+    if (micTabId != null) {
+      try {
+        const t = await chrome.tabs.get(micTabId);
+        if (t) {
+          await chrome.tabs.update(micTabId, { active: true });
+          await chrome.windows.update(t.windowId, { focused: true }).catch(() => {});
+          return micTabId;
+        }
+      } catch (_) { micTabId = null; }
+    }
+    // 2) Reuse any already-open permission tab (e.g. after a service-worker restart).
+    const existing = await chrome.tabs.query({ url: MIC_TAB_URL });
+    if (existing && existing.length > 0) {
+      micTabId = existing[0].id;
+      await chrome.tabs.update(micTabId, { active: true }).catch(() => {});
+      return micTabId;
+    }
+    // 3) Otherwise create exactly one.
+    const tab = await chrome.tabs.create({ url: MIC_TAB_URL, active: true });
+    micTabId = tab.id;
+    return micTabId;
+  })();
+
+  try {
+    return await openingMicTab;
+  } finally {
+    openingMicTab = null;
+  }
+}
+
+chrome.tabs.onRemoved.addListener((id) => { if (id === micTabId) micTabId = null; });
+
+
 // ═══════════════════════════════════════════════════════════
 //  PUTER AUTH — token-based (reliable inside the extension)
 // ═══════════════════════════════════════════════════════════
@@ -43,12 +117,13 @@ async function ensureOffscreenDocument() {
 // instance via puter.setAuthToken(token).
 
 const PUTER_TOKEN_KEYS = ['puter.auth.token.v2', 'puter.auth.token'];
-// URL that forces puter.com to show its real login form and disables the
-// auto-created temporary/guest user (see `disable_temp_users = true` in the
-// authme HTML). Without this parameter, puter.com auto-creates a guest session
-// and lands the user on the puter desktop with apps — no login prompt, and the
-// resulting guest token cannot access puter.ai.chat.
-const PUTER_LOGIN_URL = 'https://puter.com/?action=authme';
+// URL to open when the user asks JARVIS to connect. We open the plain homepage
+// (not `?action=authme`) because puter.com auto-signs the user in from cookies
+// there — no popup, no extra step. If the user is not signed in yet, they use
+// the login form on this page. We NEVER close this tab automatically; the tab
+// stays open so puter.com can complete its own auth flow and JARVIS just reads
+// the resulting token on the next poll.
+const PUTER_LOGIN_URL = 'https://puter.com/';
 
 // Reads the token from a puter.com tab, but only if a real user is signed in
 // there. We use `logged_in_users` (an array persisted by puter.com for every
@@ -63,8 +138,8 @@ function readTokenFromTab(tabId) {
         try { loggedIn = JSON.parse(window.localStorage.getItem('logged_in_users') || '[]'); } catch (_) {}
         if (!Array.isArray(loggedIn) || loggedIn.length === 0) return null;
 
-        // Prefer the token from `logged_in_users` (it is guaranteed to belong to
-        // a real, non-temp account). Fall back to the raw token keys.
+        // Prefer the token from `logged_in_users` (guaranteed to belong to a
+        // real, non-temp account). Fall back to the raw token keys.
         const withToken = loggedIn.find((u) => u && u.auth_token);
         if (withToken) return withToken.auth_token;
 
@@ -93,9 +168,16 @@ async function connectPuter() {
   let token = await getTokenFromExistingPuterTabs();
   if (token) return { token, opened: false };
 
-  // 2) open puter.com's real login form and wait until the user signs in.
-  //    Poll aggressively for the first ~15s (users usually log in fast), then
-  //    back off to 2s so we don't hammer the tab for the full timeout window.
+  // 2) open puter.com and wait — puter.com will auto-sign the user in from
+  //    existing cookies, or show its own login form. Either way we simply poll
+  //    the tab for the auth token and LEAVE THE TAB OPEN so puter.com can
+  //    complete its own auth flow without interference.
+  //
+  //    Rationale: closing the tab the instant a token appears (previous
+  //    behaviour) can race with puter.com's login redirect and abort the
+  //    sign-in mid-flow. Leaving the tab open lets the user close it manually
+  //    when they're done — and if they've already re-focused the JARVIS
+  //    popup, the token has already been captured by then anyway.
   const tab = await chrome.tabs.create({ url: PUTER_LOGIN_URL, active: true });
   const deadline = Date.now() + 5 * 60 * 1000;  // 5-minute ceiling
   let attempt = 0;
@@ -105,12 +187,9 @@ async function connectPuter() {
     attempt++;
     let stillOpen = true;
     try { await chrome.tabs.get(tab.id); } catch (_) { stillOpen = false; }
-    if (!stillOpen) break;
+    if (!stillOpen) break;   // user closed the tab themselves — respect that
     token = await readTokenFromTab(tab.id);
-    if (token) {
-      try { await chrome.tabs.remove(tab.id); } catch (_) {}
-      return { token, opened: true };
-    }
+    if (token) return { token, opened: true, tabId: tab.id };
   }
   return { token: null, opened: true };
 }
@@ -136,6 +215,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch((e) => sendResponse({ ok: false, error: e.message || String(e) }));
     return true;
   }
+
+  // Open the microphone-permission page — but only ever ONE of them.
+  // Previously every failed recognition attempt spawned a new tab, which could
+  // snowball into an endless stream of permission tabs.
+  if (message.type === 'JARVIS_OPEN_MIC_TAB') {
+    openMicPermissionTab()
+      .then((tabId) => sendResponse({ ok: true, tabId }))
+      .catch((e) => sendResponse({ ok: false, error: e.message || String(e) }));
+    return true;
+  }
+
+  // The permission page tells us the moment the user grants access. The
+  // offscreen document was created BEFORE permission existed, so its media
+  // stack is stale — tear it down so the next start builds a fresh one.
+  if (message.type === 'JARVIS_MIC_GRANTED') {
+    closeOffscreenDocument()
+      .then(() => {
+        chrome.runtime.sendMessage({ type: 'JARVIS_MIC_READY' }).catch(() => {});
+        sendResponse({ ok: true });
+      })
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
 
   if (message.type === 'EXECUTE_COMMAND') {
     handleCommand(message.command, message.data)

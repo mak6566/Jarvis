@@ -76,8 +76,7 @@ Everything runs locally in the extension. There is no separate backend, no telem
 2. Unzip somewhere permanent (Chrome loads the folder in place).
 3. Open `chrome://extensions` and turn on **Developer mode** (top‑right).
 4. Click **Load unpacked** and pick the unzipped `J.A.R.V.I.S-1.0.0` folder.
-5. Open https://puter.com/ and sign in, keep it open until you open Jarvis.
-6. Pin the JARVIS icon to the toolbar and click it — the HUD opens.
+5. Pin the JARVIS icon to the toolbar and click it — the **side panel** opens on the right.
 
 ### Option B — Drag & drop (packed)
 
@@ -85,15 +84,16 @@ Everything runs locally in the extension. There is no separate backend, no telem
 2. Drag the `.crx` (or the `.zip`) onto the page.
 3. Confirm and pin.
 
-> Works on Chrome, Edge, Brave, Arc, Opera and any other Chromium‑based browser that supports Manifest V3 and the `offscreen` API.
+> Requires Chrome 114+ (or any Chromium browser with side-panel + offscreen API support: Edge 114+, Brave 1.55+, Arc, Opera 100+, Vivaldi 6.2+).
 
 ## First launch — connect Puter
 
 On first launch you'll see the **CONNECT PUTER ACCOUNT** overlay.
 
-1. Open https://puter.com/ and if you don't have account sign in.
-2. Don't close the website and open extension.
-3. When it's open it should automatically log you in.
+1. Click **CONNECT PUTER ACCOUNT**.
+2. A new tab opens on Puter's real login page (`puter.com/?action=authme`).
+3. Log in or create a free account (email + password — Google/Apple/Microsoft also work).
+4. The tab closes itself, the badge in the header flips to `AI: <YOUR‑USERNAME>`, and you're live.
 
 The auth token is stored locally in `chrome.storage.local` and applied to the bundled Puter.js SDK — you'll only need to sign in once per machine.
 

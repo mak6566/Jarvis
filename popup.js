@@ -16,6 +16,9 @@ const S = {
   puterReady:  false,
   puterUser:   null,
   history:     [],          // rolling conversation memory [{role, content}]
+  wakeMode:    false,       // passively listening for the wake word
+  wakeArmed:   false,       // true = next transcript is a command, not a hotword
+  _wakeArmTimer: null,
   settings: {
     model:       'inclusionai/ling-3.0-flash:free',
     rate:        1.1,
@@ -24,6 +27,7 @@ const S = {
     speakAI:     true,
     continuous:  false,
     wakeword:    'jarvis',
+    wakeActivation: true,   // passively listen for the wake word and auto-arm
     indicator:   true,
   },
 };
@@ -70,6 +74,7 @@ const el = {
   tglSpeak:     $('tglSpeak'),
   tglContinuous:$('tglContinuous'),
   wakewordInput:$('wakewordInput'),
+  tglWakeActivation: $('tglWakeActivation'),
   tglIndicator: $('tglIndicator'),
   saveCfgBtn:   $('saveCfgBtn'),
 };
@@ -86,7 +91,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   initPuterAuth();
   setState('idle');
   log('info', 'JARVIS v1.0 boot sequence complete');
+
+  // Auto-arm wake-word listening once the boot sequence finishes so the user
+  // never has to click the mic to start using JARVIS.
+  if (S.settings.wakeActivation) {
+    setTimeout(() => enableWakeMode(true), 400);
+  }
 });
+
+// ═══════════════════════════════════════════════════════════
+//  WAKE-WORD LISTENING MODE
+// ═══════════════════════════════════════════════════════════
+function enableWakeMode(on) {
+  S.wakeMode = !!on;
+  S.wakeArmed = false;
+  clearTimeout(S._wakeArmTimer);
+  if (on) {
+    el.root?.classList.add('wake-listening');
+    log('info', `Wake mode ON — say "${S.settings.wakeword}" to activate.`);
+    if (S.jarvisState === 'idle') startListening(false);
+  } else {
+    el.root?.classList.remove('wake-listening');
+    log('info', 'Wake mode OFF');
+    if (S.jarvisState === 'listening') stopListening();
+  }
+}
 
 // ═══════════════════════════════════════════════════════════
 //  STATE MACHINE
@@ -252,8 +281,8 @@ async function doConnect(btn) {
   }
   const prevLabel = btn?.textContent;
   if (btn) { btn.textContent = 'CONNECTING…'; btn.disabled = true; }
-  log('info', 'Opening Puter sign-in page…');
-  addMsg('jarvis', 'JARVIS', 'Opening the Puter sign-in page — log in (or create a free account) and JARVIS will connect automatically, sir.');
+  log('info', 'Opening puter.com — sign-in continues in that tab…');
+  addMsg('jarvis', 'JARVIS', 'Opening puter.com, sir — sign in there (or you may already be signed in). I will connect the moment your token is available. You can leave the tab open.');
 
   try {
     const token = await requestToken('PUTER_CONNECT');
@@ -352,47 +381,64 @@ function toggleMic() {
 }
 
 // A one-time microphone permission must come from a visible tab (neither the
-// offscreen document nor the popup can show the native prompt) — so we open it
-// automatically instead of making the user hunt through settings.
-function openMicPermissionTab() {
-  addMsg('err', 'JARVIS', 'Microphone is not enabled yet. Opening a one-time permission tab — click "ENABLE MICROPHONE" there and then come back.');
-  log('warn', 'Microphone not granted yet — opening permission tab');
-  chrome.tabs.create({ url: chrome.runtime.getURL('mic-permission.html') });
+// offscreen document nor the side panel can show the native prompt). The tab is
+// opened through the background worker, which guarantees exactly ONE tab ever
+// exists — earlier builds spawned a new tab for every failed attempt.
+let _micTabRequested = false;
+function openMicPermissionTab(reason) {
+  if (_micTabRequested) {
+    log('warn', 'Microphone permission tab is already open — finish it there.');
+    return;
+  }
+  _micTabRequested = true;
+  addMsg('err', 'JARVIS', 'Microphone is not enabled yet. I opened a one-time permission tab — click "ENABLE MICROPHONE" there and come back.');
+  log('warn', `Microphone not granted (${reason || 'no permission'}) — opening permission tab`);
+  chrome.runtime.sendMessage({ type: 'JARVIS_OPEN_MIC_TAB' }).catch(() => {});
 }
 
-async function ensureMicPermission() {
+async function micPermissionState() {
   try {
     if (navigator.permissions && navigator.permissions.query) {
       const status = await navigator.permissions.query({ name: 'microphone' });
-      if (status.state === 'denied') {
-        openMicPermissionTab();
-        return false;
-      }
-      if (status.state === 'granted') return true;
-      // 'prompt': leave it to the offscreen document / first attempt below.
+      return status.state; // 'granted' | 'denied' | 'prompt'
     }
-    return true;
-  } catch (e) {
-    return true; // Permissions API for 'microphone' may be unsupported — try anyway
-  }
+  } catch (_) { /* unsupported */ }
+  return 'unknown';
 }
 
+let _starting = false;
+
 async function startListening(isChatMic) {
-  const granted = await ensureMicPermission();
-  if (!granted) return;
-
-  _chatMicActive = !!isChatMic;
-
+  if (_starting) return;
+  _starting = true;
   try {
-    await chrome.runtime.sendMessage({ type: 'JARVIS_ENSURE_OFFSCREEN' });
+    const state = await micPermissionState();
+    if (state === 'denied' || state === 'prompt') {
+      // 'prompt' means no permission yet — the offscreen document cannot show
+      // the native dialog, so asking it to start would just fail in a loop.
+      openMicPermissionTab(state);
+      return;
+    }
+
+    _chatMicActive = !!isChatMic;
+    log('info', 'Starting microphone…');
+
+    const ready = await chrome.runtime.sendMessage({ type: 'JARVIS_ENSURE_OFFSCREEN' });
+    if (!ready?.ok) {
+      log('error', `Offscreen audio module failed: ${ready?.error || 'unknown error'}`);
+      resetMicUI();
+      return;
+    }
     await chrome.runtime.sendMessage({
       type: 'JARVIS_SR_START',
       lang: S.settings.lang,
-      continuous: S.settings.continuous
+      continuous: S.settings.continuous || S.wakeMode
     });
   } catch (e) {
     log('error', `Could not start microphone: ${e.message || e}`);
     resetMicUI();
+  } finally {
+    _starting = false;
   }
 }
 
@@ -407,6 +453,7 @@ function resetMicUI(resetState = true) {
   el.chatMicBtn.classList.remove('active');
   if (resetState && S.jarvisState === 'listening') setState('idle');
 }
+
 
 // Messages from offscreen.js (runs independently of whether the popup is open)
 chrome.runtime.onMessage.addListener((message) => {
@@ -425,17 +472,73 @@ chrome.runtime.onMessage.addListener((message) => {
     if (!transcript) return;
     el.lastHeard.textContent = `"${transcript}"`;
     log('info', `Voice: "${transcript}"`);
-    if (!S.settings.continuous) stopListening(false);
+
+    // Wake-word activation mode: mic runs passively, only transcripts that
+    // start with (or contain) the wake word trigger command processing.
+    if (S.wakeMode && !S.wakeArmed) {
+      const wwRe = new RegExp(`\\b${S.settings.wakeword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      if (!wwRe.test(transcript)) {
+        // Not the hotword — keep listening silently.
+        return;
+      }
+      // Hotword heard: strip everything up to it and process the rest.
+      const idx = transcript.search(wwRe);
+      const after = transcript.slice(idx).replace(wwRe, '').replace(/^[\s,.!?:;-]+/, '').trim();
+      if (after) {
+        // "Jarvis, open youtube" → run the command right away.
+        handleInput(after);
+      } else {
+        // Just "Jarvis" on its own → arm for the next utterance and beep.
+        S.wakeArmed = true;
+        el.root?.classList.remove('wake-listening');
+        setState('listening');
+        addMsg('jarvis', 'JARVIS', 'Yes, sir?');
+        try { speak('Yes, sir?'); } catch (_) {}
+        // Auto-disarm after 8 s of silence so we drop back to passive listening.
+        clearTimeout(S._wakeArmTimer);
+        S._wakeArmTimer = setTimeout(() => {
+          S.wakeArmed = false;
+          if (S.wakeMode) el.root?.classList.add('wake-listening');
+        }, 8000);
+      }
+      return;
+    }
+
+    // Normal path (mic tapped manually, or wake mode already armed).
+    if (S.wakeMode) {
+      S.wakeArmed = false;
+      clearTimeout(S._wakeArmTimer);
+      el.root?.classList.add('wake-listening');
+    }
+    if (!S.settings.continuous && !S.wakeMode) stopListening(false);
     handleInput(transcript);
   } else if (message.type === 'JARVIS_SR_ERROR') {
     log('error', `Speech error: ${message.error}`);
     resetMicUI();
-    if (message.error === 'not-allowed') {
+    if (message.fatal) {
+      // Fatal → the offscreen document already stopped; do not auto-retry.
+      S.wakeMode = false;
+      el.root?.classList.remove('wake-listening');
+    }
+    if (message.error === 'not-allowed' || message.error === 'service-not-allowed') {
       addMsg('err', 'JARVIS', 'Microphone permission denied.');
-      openMicPermissionTab();
+      openMicPermissionTab(message.error);
+    } else if (message.error === 'audio-capture') {
+      addMsg('err', 'JARVIS', 'No usable microphone was found.');
+    }
+  } else if (message.type === 'JARVIS_MIC_READY') {
+    // The permission tab reported success → allow a fresh start and resume.
+    _micTabRequested = false;
+    log('info', 'Microphone permission granted — restarting listener');
+    addMsg('jarvis', 'JARVIS', 'Microphone enabled. Listening is back online.');
+    if (S.settings.wakeActivation) {
+      enableWakeMode(true);
+    } else if (S.jarvisState === 'idle') {
+      startListening(false);
     }
   }
 });
+
 
 // ═══════════════════════════════════════════════════════════
 //  CHAT INPUT
@@ -987,7 +1090,7 @@ function loadSettings() {
 }
 
 function applySettingsUI() {
-  const { model, rate, pitch, lang, speakAI, continuous, wakeword, indicator } = S.settings;
+  const { model, rate, pitch, lang, speakAI, continuous, wakeword, wakeActivation, indicator } = S.settings;
 
   const knownVals = Array.from(document.querySelectorAll('.model-row[data-val]'))
     .map(r => r.dataset.val)
@@ -1014,6 +1117,7 @@ function applySettingsUI() {
   el.tglSpeak.checked      = speakAI;
   el.tglContinuous.checked = continuous;
   el.wakewordInput.value   = wakeword;
+  if (el.tglWakeActivation) el.tglWakeActivation.checked = wakeActivation;
   el.tglIndicator.checked  = indicator;
 
   updateRangeTrack(el.rateSlider);
@@ -1069,6 +1173,13 @@ function initSettings() {
   el.tglSpeak.addEventListener('change', ()     => { S.settings.speakAI    = el.tglSpeak.checked; });
   el.tglContinuous.addEventListener('change', () => { S.settings.continuous = el.tglContinuous.checked; });
   el.tglIndicator.addEventListener('change', ()  => { S.settings.indicator  = el.tglIndicator.checked; });
+  if (el.tglWakeActivation) {
+    el.tglWakeActivation.addEventListener('change', () => {
+      S.settings.wakeActivation = el.tglWakeActivation.checked;
+      enableWakeMode(S.settings.wakeActivation);
+      chrome.storage.local.set({ jarvisV2Settings: S.settings });
+    });
+  }
   el.wakewordInput.addEventListener('change', () => {
     S.settings.wakeword = el.wakewordInput.value.trim().toLowerCase() || 'jarvis';
   });

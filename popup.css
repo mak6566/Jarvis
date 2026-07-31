@@ -29,7 +29,14 @@
 
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 420px; height: 600px; overflow: hidden; background: var(--c-bg); }
+html, body {
+  width: 100%;
+  min-width: 320px;
+  height: 100vh;
+  min-height: 480px;
+  overflow: hidden;
+  background: var(--c-bg);
+}
 button { cursor: pointer; font-family: var(--f-hud); }
 
 /* ══════════════════════════════════════════════════════════
@@ -37,7 +44,8 @@ button { cursor: pointer; font-family: var(--f-hud); }
 ══════════════════════════════════════════════════════════ */
 .jarvis-root {
   position: relative;
-  width: 420px; height: 600px;
+  width: 100%; height: 100vh;
+  min-height: 480px;
   background: var(--c-bg);
   display: flex; flex-direction: column;
   overflow: hidden;
@@ -877,3 +885,48 @@ input[type="range"]::-webkit-slider-thumb {
   100% { box-shadow: 0 0 0 40px rgba(0,243,255,0); }
 }
 .cmd-flash { animation: cmdFlash .6s ease-out; }
+
+/* ══════════════════════════════════════════════════════════
+   SIDE PANEL RESPONSIVE ADJUSTMENTS
+   Chrome's side panel can be resized by the user. Scale down the
+   Arc Reactor, HUD stats and tab labels for narrow panels so
+   nothing overflows or clips.
+══════════════════════════════════════════════════════════ */
+@media (max-width: 380px) {
+  .reactor-shell { transform: scale(.85); transform-origin: top center; }
+  .hud-stats { font-size: 9px; gap: 6px; }
+  .tab-btn { font-size: 10px; padding: 6px 4px; }
+  .msg { font-size: 12px; }
+  .footer-brand { font-size: 8px; }
+  .hud-txt { width: 90px; }
+}
+
+/* Tall side panels (typical Chrome side-panel is ~500-800px tall) —
+   let the chat feed and log feed stretch to fill the extra space. */
+@media (min-height: 700px) {
+  .chat-feed, .log-feed, .settings-body { max-height: none; }
+}
+
+/* Wide side panels — center the HUD and cap the max content width so
+   the reactor doesn't stretch grotesquely when the user drags the panel
+   wide. */
+@media (min-width: 560px) {
+  .jarvis-root { max-width: 560px; margin: 0 auto; }
+}
+
+/* Wake-word listening indicator — subtle pulse on the mic badge when
+   the extension is passively waiting for the "jarvis" hotword. */
+.wake-listening .mic-btn::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid var(--c-cyan);
+  opacity: .5;
+  animation: wakePulse 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes wakePulse {
+  0%, 100% { transform: scale(1); opacity: .5; }
+  50%      { transform: scale(1.25); opacity: 0; }
+}
