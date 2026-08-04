@@ -38,6 +38,13 @@ html, body {
   background: var(--c-bg);
 }
 button { cursor: pointer; font-family: var(--f-hud); }
+/* Sci-fi press feedback */
+.tab-btn:active, .chat-send:active, .chat-mic-btn:active, .log-btn:active,
+.voice-test-btn:active, .auth-action-btn:active, .cmd-chip:active,
+.model-row:active, .vdd-opt:active, .vdd-trigger:active {
+  transform: scale(.96);
+  filter: brightness(1.5);
+}
 
 /* ══════════════════════════════════════════════════════════
    ROOT SHELL
@@ -70,9 +77,7 @@ button { cursor: pointer; font-family: var(--f-hud); }
     0deg, transparent, transparent 2px,
     rgba(0,243,255,.018) 2px, rgba(0,243,255,.018) 4px
   );
-  animation: scanScroll 10s linear infinite;
 }
-@keyframes scanScroll { to { background-position: 0 600px; } }
 
 /* ── Vignette ── */
 .vignette {
@@ -839,7 +844,7 @@ input[type="range"]::-webkit-slider-thumb {
 /* ── v1.0 sci-fi FX: scanlines, grain, boot flicker ───────────── */
 #jarvisRoot::before {
   content: "";
-  position: absolute; inset: 0;
+  position: absolute; top: 0; left: 0; right: 0; height: calc(100% + 3px);
   pointer-events: none; z-index: 9998;
   background:
     repeating-linear-gradient(
@@ -851,7 +856,8 @@ input[type="range"]::-webkit-slider-thumb {
     );
   mix-blend-mode: screen;
   opacity: .55;
-  animation: scanDrift 8s linear infinite;
+  animation: scanDrift 14s linear infinite;
+  will-change: transform;
 }
 #jarvisRoot::after {
   content: "";
@@ -862,7 +868,7 @@ input[type="range"]::-webkit-slider-thumb {
   opacity: .35;
   animation: grainShift .5s steps(3) infinite;
 }
-@keyframes scanDrift { from { background-position-y: 0; } to { background-position-y: 6px; } }
+@keyframes scanDrift { from { transform: translateY(0); } to { transform: translateY(-3px); } }
 @keyframes grainShift {
   0% { transform: translate(0,0); }
   33% { transform: translate(-1px,1px); }
@@ -929,4 +935,367 @@ input[type="range"]::-webkit-slider-thumb {
 @keyframes wakePulse {
   0%, 100% { transform: scale(1); opacity: .5; }
   50%      { transform: scale(1.25); opacity: 0; }
+}
+
+/* Execution-stage strip — HEAR → DECODE → EXECUTE → SPEAK stepper */
+.stage-strip {
+  display: flex; align-items: center; justify-content: center;
+  gap: 5px; margin: 12px 0 4px;
+}
+.stage {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--f-hud); font-size: 8.5px; letter-spacing: .12em;
+  color: var(--c-dim); opacity: .5;
+  padding: 3px 8px; border: 1px solid transparent; border-radius: 3px;
+  transition: all .35s ease;
+}
+.stage-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--c-dim); transition: all .35s ease;
+}
+.stage-arrow { color: var(--c-dim); opacity: .35; font-size: 10px; }
+.stage.active {
+  opacity: 1;
+  border-color: rgba(0,243,255,.35);
+  background: rgba(0,243,255,.07);
+  box-shadow: var(--glow-s);
+}
+.stage.active .stage-dot {
+  background: var(--c-cyan);
+  box-shadow: 0 0 6px var(--c-cyan);
+  animation: stageDotPulse 1.2s ease-in-out infinite;
+}
+.stage[data-stage="hear"].active {
+  color: var(--c-orange); text-shadow: 0 0 8px rgba(255,154,0,.55);
+  border-color: rgba(255,154,0,.35); background: rgba(255,154,0,.06);
+}
+.stage[data-stage="hear"].active .stage-dot { background: var(--c-orange); box-shadow: 0 0 6px var(--c-orange); }
+.stage[data-stage="decode"].active,
+.stage[data-stage="execute"].active {
+  color: var(--c-yellow); text-shadow: 0 0 8px rgba(255,213,0,.5);
+  border-color: rgba(255,213,0,.3); background: rgba(255,213,0,.05);
+}
+.stage[data-stage="decode"].active .stage-dot,
+.stage[data-stage="execute"].active .stage-dot { background: var(--c-yellow); box-shadow: 0 0 6px var(--c-yellow); }
+.stage[data-stage="speak"].active {
+  color: var(--c-green); text-shadow: 0 0 8px rgba(87,255,154,.5);
+  border-color: rgba(87,255,154,.3); background: rgba(87,255,154,.05);
+}
+.stage[data-stage="speak"].active .stage-dot { background: var(--c-green); box-shadow: 0 0 6px var(--c-green); }
+@keyframes stageDotPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.5); }
+}
+
+/* ── Custom voice dropdown (replaces the native <select>) ── */
+.vdd { position: relative; width: 190px; }
+.vdd-trigger {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  background: rgba(0,243,255,.04); border: 1px solid var(--c-border);
+  border-radius: 4px; color: var(--c-text);
+  font-family: var(--f-mono); font-size: 10.5px; padding: 5px 8px;
+  cursor: pointer; outline: none; transition: all .15s;
+}
+.vdd-trigger:hover { border-color: var(--c-cyan); box-shadow: var(--glow-s); }
+.vdd-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+.vdd-caret { color: var(--c-cyan); flex-shrink: 0; transition: transform .15s; }
+.vdd.open .vdd-caret { transform: rotate(180deg); }
+.vdd-panel {
+  display: none; position: absolute; top: calc(100% + 5px); left: 0; z-index: 500;
+  width: 250px; max-height: 280px; flex-direction: column;
+  background: rgba(4,14,20,.97); border: 1px solid var(--c-cyan);
+  border-radius: 6px; box-shadow: 0 10px 28px rgba(0,0,0,.6), 0 0 16px rgba(0,243,255,.12);
+  overflow: hidden;
+}
+.vdd.open .vdd-panel { display: flex; animation: vddIn .14s ease-out; }
+@keyframes vddIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.vdd-search {
+  margin: 6px; padding: 5px 8px; flex-shrink: 0;
+  background: rgba(0,243,255,.05); border: 1px solid var(--c-border);
+  border-radius: 4px; color: var(--c-text);
+  font-family: var(--f-mono); font-size: 10.5px; outline: none;
+}
+.vdd-search:focus { border-color: var(--c-cyan); box-shadow: var(--glow-s); }
+.vdd-list { overflow-y: auto; padding: 0 6px 8px; }
+.vdd-list::-webkit-scrollbar { width: 3px; }
+.vdd-list::-webkit-scrollbar-thumb { background: var(--c-border-h); border-radius: 2px; }
+.vdd-hdr {
+  font-family: var(--f-hud); font-size: 8px; letter-spacing: 2px;
+  color: var(--c-cyan); padding: 8px 6px 3px; opacity: .85;
+}
+.vdd-opt {
+  display: block; width: 100%; text-align: left;
+  background: transparent; border: 0; border-radius: 3px;
+  color: var(--c-text); font-family: var(--f-mono); font-size: 10.5px;
+  padding: 4px 7px; cursor: pointer; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; transition: all .12s;
+}
+.vdd-opt:hover { background: rgba(0,243,255,.12); color: var(--c-cyan); }
+.vdd-opt.sel { background: rgba(0,243,255,.1); color: var(--c-cyan); }
+.vdd-opt.sel::before { content: '▸ '; }
+
+/* Brief green flash on the mic button when a command executes */
+.mic-btn.cmd-flash {
+  border-color: var(--c-green) !important;
+  box-shadow: 0 0 14px rgba(87,255,154,.6), inset 0 0 10px rgba(87,255,154,.25);
+  transition: box-shadow .12s ease, border-color .12s ease;
+}
+.mic-btn.cmd-flash .mic-ring-inner {
+  border-color: var(--c-green);
+  box-shadow: 0 0 10px var(--c-green);
+}
+
+/* ══════════════════════════════════════════════════════════
+   JARVIS-LIKE ANIMATION UPGRADES
+   ═════════════════════════════════════════════════════════ */
+
+/* 1) Boot ignition — one bright flash the moment the HUD powers up. */
+.jarvis-root::after {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none; z-index: 85;
+  background: radial-gradient(ellipse at 50% 38%,
+    rgba(0,243,255,.42) 0%, rgba(0,168,255,.14) 45%, transparent 72%);
+  opacity: 0;
+  animation: jarvisBoot 1.8s ease-out 1 forwards;
+}
+@keyframes jarvisBoot {
+  0%   { opacity: 1; }
+  55%  { opacity: .5; }
+  100% { opacity: 0; }
+}
+
+/* 2) Light sweep — a soft scan band glides over the HUD while JARVIS is busy. */
+.jarvis-root[data-state="listening"]::before,
+.jarvis-root[data-state="thinking"]::before,
+.jarvis-root[data-state="speaking"]::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none; z-index: 45;
+  background: linear-gradient(180deg,
+    transparent 0%, rgba(0,243,255,.04) 47%,
+    rgba(0,243,255,.1) 50%, rgba(0,243,255,.04) 53%, transparent 100%);
+  background-size: 100% 240%;
+  animation: hudSweep 2.8s linear infinite;
+}
+@keyframes hudSweep {
+  0%   { background-position: 0 -120%; }
+  100% { background-position: 0 120%; }
+}
+
+/* 3) Arc rings adopt the state colour (CSS overrides the SVG stroke). */
+.jarvis-root[data-state="listening"] .arc-svg circle { stroke: #ff8c2e; }
+.jarvis-root[data-state="thinking"]  .arc-svg circle { stroke: #ffd500; }
+.jarvis-root[data-state="speaking"]  .arc-svg circle { stroke: #3dff9e; }
+
+/* 4) Hex core spins up when JARVIS is engaged. */
+.jarvis-root[data-state="listening"] #hexOuter { animation-duration: 8s; }
+.jarvis-root[data-state="listening"] #hexInner { animation-duration: 5s; }
+.jarvis-root[data-state="thinking"]  #hexOuter { animation-duration: 3s; }
+.jarvis-root[data-state="thinking"]  #hexInner { animation-duration: 2s; }
+.jarvis-root[data-state="speaking"]  #hexOuter { animation-duration: 6s; }
+.jarvis-root[data-state="speaking"]  #hexInner { animation-duration: 4s; }
+
+/* Tick ring quickens under load. */
+.jarvis-root[data-state="listening"] .tick-svg { animation-duration: 22s; }
+.jarvis-root[data-state="thinking"]  .tick-svg { animation-duration: 9s; }
+.jarvis-root[data-state="speaking"]  .tick-svg { animation-duration: 16s; }
+
+/* 5) THINKING — rotating energy beams sweep inside the core (added to flicker). */
+.jarvis-root[data-state="thinking"] .core-glow {
+  background:
+    conic-gradient(from 0deg,
+      rgba(255,214,0,0) 0deg 40deg, rgba(255,214,0,.5) 82deg, rgba(255,214,0,0) 132deg,
+      rgba(255,214,0,0) 218deg, rgba(255,214,0,.5) 262deg, rgba(255,214,0,0) 312deg),
+    radial-gradient(ellipse at center, rgba(255,214,0,.18) 0%, rgba(255,214,0,.05) 55%, transparent 100%);
+  animation: thinkFlicker .22s linear infinite, thinkSweep 1.1s linear infinite;
+}
+@keyframes thinkSweep { to { transform: rotate(360deg); } }
+
+/* 6) LISTENING — sonar echo rings radiate from the core while the mic is hot. */
+.jarvis-root[data-state="listening"] .core::after {
+  content: '';
+  position: absolute; inset: -4px; border-radius: 50%;
+  border: 1px solid rgba(255,106,0,.55);
+  pointer-events: none;
+  animation: listenEcho 1.5s ease-out infinite;
+}
+@keyframes listenEcho {
+  0%   { transform: scale(.92); opacity: .85; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* 7) SPEAKING — calm wave ripples instead of pulses. */
+.jarvis-root[data-state="speaking"] .core::after {
+  content: '';
+  position: absolute; inset: -6px; border-radius: 50%;
+  border: 1px solid rgba(0,255,135,.4);
+  pointer-events: none;
+  animation: speakEcho 2.2s ease-out infinite;
+}
+@keyframes speakEcho {
+  0%   { transform: scale(.94); opacity: .6; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* 8) Reactor state text snaps in with a quick JARVIS-style blink. */
+.reactor-state-text { animation: stateBlink .28s ease-out; }
+.jarvis-root[data-state="thinking"] .reactor-state-text {
+  animation: stateBlink .28s ease-out, thinkLabel .45s ease-in-out infinite;
+}
+.jarvis-root[data-state="listening"] .reactor-state-text,
+.jarvis-root[data-state="speaking"] .reactor-state-text {
+  animation: stateBlink .28s ease-out;
+}
+@keyframes stateBlink {
+  0%   { opacity: 0; }
+  35%  { opacity: 1; }
+  55%  { opacity: .15; }
+  100% { opacity: 1; }
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   MAJESTIC JARVIS FX — v2.1
+   ══════════════════════════════════════════════════════════ */
+
+/* Radar sweep behind the reactor */
+.reactor-wrap::before {
+  content: '';
+  position: absolute; inset: 6px; border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(0,243,255,.16), transparent 60deg,
+    transparent 300deg, rgba(0,243,255,.16));
+  mask: radial-gradient(circle, transparent 58%, #000 60%, #000 100%);
+  -webkit-mask: radial-gradient(circle, transparent 58%, #000 60%, #000 100%);
+  animation: radarSweep 6s linear infinite;
+  pointer-events: none; z-index: 0;
+}
+@keyframes radarSweep { to { transform: rotate(360deg); } }
+
+/* Reactor "breathing" — gentle scale pulse */
+.reactor { animation: reactorBreathe 5s ease-in-out infinite; }
+@keyframes reactorBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.015); }
+}
+
+/* State-colored ambient glow around the whole reactor */
+.reactor-wrap { transition: filter .5s ease; }
+.jarvis-root[data-state="idle"]      .reactor-wrap { filter: drop-shadow(0 0 14px rgba(0,243,255,.25)); }
+.jarvis-root[data-state="listening"] .reactor-wrap { filter: drop-shadow(0 0 22px rgba(255,138,46,.45)); }
+.jarvis-root[data-state="thinking"]  .reactor-wrap { filter: drop-shadow(0 0 26px rgba(255,213,0,.5)); }
+.jarvis-root[data-state="speaking"]  .reactor-wrap { filter: drop-shadow(0 0 24px rgba(87,255,154,.45)); }
+
+/* Spinning energy arcs inside the core */
+.core-arcs {
+  position: absolute; inset: 6px; border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    transparent 0deg 40deg, rgba(0,243,255,.55) 70deg, transparent 110deg,
+    transparent 200deg, rgba(0,243,255,.35) 240deg, transparent 290deg);
+  animation: arcSpin 3.2s linear infinite;
+  pointer-events: none; z-index: 1;
+  opacity: .5;
+}
+.jarvis-root[data-state="listening"] .core-arcs {
+  background: conic-gradient(from 0deg,
+    transparent 0deg 30deg, rgba(255,138,46,.7) 60deg, transparent 100deg,
+    transparent 190deg, rgba(255,138,46,.5) 230deg, transparent 280deg);
+  animation-duration: 1.6s; opacity: .8;
+}
+.jarvis-root[data-state="thinking"] .core-arcs {
+  background: conic-gradient(from 0deg,
+    transparent 0deg 20deg, rgba(255,213,0,.8) 55deg, transparent 100deg,
+    transparent 185deg, rgba(255,213,0,.6) 235deg, transparent 290deg);
+  animation-duration: .9s; opacity: .9;
+}
+.jarvis-root[data-state="speaking"] .core-arcs {
+  background: conic-gradient(from 0deg,
+    transparent 0deg 45deg, rgba(87,255,154,.6) 80deg, transparent 125deg,
+    transparent 215deg, rgba(87,255,154,.4) 255deg, transparent 300deg);
+  animation-duration: 2.4s; opacity: .7;
+}
+@keyframes arcSpin { to { transform: rotate(360deg); } }
+
+/* Data ring — now a slowly rotating dashed orbit */
+.r-data-outer {
+  border: 1px dashed rgba(0,243,255,.3);
+  animation: orbitSpin 36s linear infinite, outerRingPulse 4s ease-in-out infinite;
+}
+@keyframes orbitSpin { to { transform: rotate(360deg); } }
+
+/* Header scanline sweep */
+.hud-header::after {
+  content: '';
+  position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--c-cyan), transparent);
+  animation: hdrSweep 4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes hdrSweep {
+  0%   { transform: translateX(-100%); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* Brand glows softly */
+.brand { animation: brandPulse 3s ease-in-out infinite; }
+@keyframes brandPulse {
+  0%, 100% { text-shadow: 0 0 6px rgba(0,243,255,.6); }
+  50%      { text-shadow: 0 0 16px rgba(0,243,255,1); }
+}
+
+/* ── Live mic level meter ── */
+.mic-level {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; max-width: 200px;
+  margin: 2px auto 6px;
+  font-family: var(--f-hud);
+}
+.mic-level-lbl {
+  font-size: 7px; letter-spacing: 2px; color: var(--c-dim);
+  flex-shrink: 0;
+}
+.mic-level-track {
+  flex: 1; height: 4px;
+  background: rgba(0,243,255,.1);
+  border: 1px solid rgba(0,243,255,.2);
+  border-radius: 2px; overflow: hidden;
+}
+.mic-level-bar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--c-orange), var(--c-green));
+  box-shadow: 0 0 8px rgba(87,255,154,.7);
+  transition: width .1s linear;
+}
+.mic-level-num {
+  font-size: 8px; color: var(--c-green);
+  width: 20px; text-align: right; flex-shrink: 0;
+}
+
+/* ── Voice settings extras ── */
+.voice-hint-row { align-items: flex-start; }
+.voice-hint {
+  font-size: 9px; line-height: 1.45;
+  color: var(--c-yellow);
+  opacity: .85;
+}
+.voice-test-btn {
+  background: rgba(0,243,255,.08);
+  border: 1px solid rgba(0,243,255,.35);
+  color: var(--c-cyan);
+  font-family: var(--f-hud); font-size: 9px; letter-spacing: 1.5px;
+  padding: 4px 10px; border-radius: 4px;
+  cursor: pointer; transition: all .2s;
+}
+.voice-test-btn:hover {
+  background: rgba(0,243,255,.18);
+  box-shadow: var(--glow-s);
+}
+
+/* ── Accessibility / battery: cut motion when the OS asks for it ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01s !important;
+  }
 }

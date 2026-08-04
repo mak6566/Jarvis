@@ -257,7 +257,7 @@ Puter's model catalog changes frequently. Any valid Puter model id works — jus
 |---|---|---|
 | Ling 3.0 Flash | `ling-3.0-flash` | Default — free, fast |
 | GPT‑4o Mini | `gpt-4o-mini` | Fast, general purpose |
-| Claude 3.5 Sonnet | `claude-3-5-sonnet` | Deeper reasoning |
+| GPT‑5.6 Luna Pro | `openai/gpt-5.6-luna-pro` | Puter.js docs default — accurate & fast |
 
 Any current Puter model id (GPT‑5, Claude 4, Gemini, DeepSeek, etc.) will also work as long as your Puter account has access to it.
 

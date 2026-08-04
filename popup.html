@@ -120,6 +120,7 @@
         <!-- Core -->
         <div class="core" id="core">
           <div class="core-glow"></div>
+          <div class="core-arcs" aria-hidden="true"></div>
           <svg class="hex-svg" viewBox="0 0 100 100" id="hexSvg">
             <polygon id="hexOuter" points="50,5 91,28 91,72 50,95 9,72 9,28"
               fill="rgba(0,243,255,.07)" stroke="#00f3ff" stroke-width="1.8"/>
@@ -158,6 +159,17 @@
       <div class="stat"><span class="stat-k">TTS</span><span class="stat-v" id="sv-tts">IDLE</span></div>
     </div>
 
+    <!-- Execution-stage strip: HEAR → DECODE → EXECUTE → SPEAK -->
+    <div class="stage-strip" id="stageStrip">
+      <div class="stage" data-stage="hear"><span class="stage-dot"></span>HEAR</div>
+      <div class="stage-arrow">›</div>
+      <div class="stage" data-stage="decode"><span class="stage-dot"></span>DECODE</div>
+      <div class="stage-arrow">›</div>
+      <div class="stage" data-stage="execute"><span class="stage-dot"></span>EXECUTE</div>
+      <div class="stage-arrow">›</div>
+      <div class="stage" data-stage="speak"><span class="stage-dot"></span>SPEAK</div>
+    </div>
+
     <!-- Mic button -->
     <button class="mic-btn" id="micBtn" title="Toggle voice recognition">
       <div class="mic-ring mic-ring-outer"></div>
@@ -172,6 +184,13 @@
       </div>
       <span class="mic-label" id="micLabel">ACTIVATE</span>
     </button>
+
+    <!-- Live mic level meter -->
+    <div class="mic-level" id="micLevelWrap" style="display:none">
+      <span class="mic-level-lbl">MIC LVL</span>
+      <div class="mic-level-track"><div class="mic-level-bar" id="micLevelBar"></div></div>
+      <span class="mic-level-num" id="micLevelNum">0</span>
+    </div>
 
     <!-- Last heard display -->
     <div class="last-heard" id="lastHeard"></div>
@@ -218,7 +237,7 @@
     <div class="log-feed" id="logFeed">
       <div class="log-row info">
         <span class="log-ts" id="bootTs"></span>
-        <span class="log-msg">JARVIS v1.0 boot sequence complete</span>
+        <span class="log-msg">JARVIS v2.1 boot sequence complete</span>
       </div>
     </div>
   </section>
@@ -249,12 +268,12 @@
             </div>
             <span class="model-tag">PLUS</span>
           </label>
-          <label class="model-row" data-val="claude-3-5-sonnet">
-            <input type="radio" name="model" value="claude-3-5-sonnet">
+          <label class="model-row" data-val="openai/gpt-5.6-luna-pro">
+            <input type="radio" name="model" value="openai/gpt-5.6-luna-pro">
             <div class="model-dot"></div>
             <div class="model-txt">
-              <span class="model-name">CLAUDE 3.5 SONNET</span>
-              <span class="model-sub">Anthropic · Advanced</span>
+              <span class="model-name">GPT-5.6 LUNA PRO</span>
+              <span class="model-sub">OpenAI · Puter.js docs default</span>
             </div>
             <span class="model-tag">PRO</span>
           </label>
@@ -267,7 +286,7 @@
             </div>
           </label>
         </div>
-        <input type="text" id="customModelInput" class="custom-model-input" placeholder="napr. openai/gpt-5.5 alebo anthropic/claude-opus-4-8" style="display:none" />
+        <input type="text" id="customModelInput" class="custom-model-input" placeholder="napr. openai/gpt-5.6-luna-pro alebo anthropic/claude-opus-4-8" style="display:none" />
       </div>
 
       <!-- Puter Auth Section -->
@@ -306,7 +325,59 @@
             <option value="de-DE">German</option>
             <option value="fr-FR">French</option>
             <option value="es-ES">Spanish</option>
+            <option value="it-IT">Italian</option>
+            <option value="pt-PT">Portuguese</option>
+            <option value="pl-PL">Polish</option>
+            <option value="hu-HU">Hungarian</option>
+            <option value="nl-NL">Dutch</option>
+            <option value="ru-RU">Russian</option>
+            <option value="ja-JP">Japanese</option>
           </select>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-lbl" title="Language used to HEAR your commands. English is best for English commands; independent of the voice language.">Recognition lang</span>
+          <select class="hud-sel" id="recogSel" title="Speech-recognition language — separate from the TTS voice language">
+            <option value="en-US">English — best for commands</option>
+            <option value="sk-SK">Slovak</option>
+            <option value="cs-CZ">Czech</option>
+            <option value="de-DE">German</option>
+            <option value="fr-FR">French</option>
+            <option value="es-ES">Spanish</option>
+            <option value="it-IT">Italian</option>
+            <option value="pl-PL">Polish</option>
+            <option value="hu-HU">Hungarian</option>
+            <option value="nl-NL">Dutch</option>
+            <option value="ru-RU">Russian</option>
+            <option value="ja-JP">Japanese</option>
+          </select>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-lbl" title="Pick a specific voice for TTS, or AUTO to match the selected language">Voice</span>
+          <div class="vdd" id="voiceDrop">
+            <button type="button" class="vdd-trigger" id="voiceTrigger" title="Pick a voice — AUTO picks the best for your language">
+              <span id="voiceTriggerLabel">AUTO</span>
+              <svg class="vdd-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="vdd-panel" id="voicePanel">
+              <input type="text" class="vdd-search" id="voiceSearch" placeholder="Search voices…" autocomplete="off" spellcheck="false"/>
+              <div class="vdd-list" id="voiceList"></div>
+            </div>
+          </div>
+        </div>
+        <div class="cfg-row voice-hint-row">
+          <span class="cfg-lbl"></span>
+          <span class="voice-hint" id="voiceHint" style="display:none"></span>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-lbl"></span>
+          <button type="button" class="voice-test-btn" id="voiceTestBtn" title="Preview the selected voice">▶ TEST VOICE</button>
+        </div>
+        <div class="cfg-row">
+          <span class="cfg-lbl" title="How long JARVIS keeps listening for a command after you say the wake word">Listen window</span>
+          <div class="slider-grp">
+            <input type="range" id="listenSlider" min="3" max="12" step="1" value="6">
+            <span class="slider-out" id="listenOut">6s</span>
+          </div>
         </div>
         <div class="cfg-row">
           <span class="cfg-lbl">Speak AI responses</span>
@@ -360,14 +431,14 @@
 
   <!-- ████████  FOOTER  ████████ -->
   <footer class="hud-footer">
-    <span class="footer-brand">STARK INDUSTRIES · JARVIS v1.0</span>
+    <span class="footer-brand">STARK INDUSTRIES · JARVIS v2.1</span>
     <span class="footer-dot"></span>
   </footer>
 
 </div><!-- /jarvis-root -->
 
-<!-- Local Puter.js SDK — bundled, no CSP issues -->
-<script src="puter.js"></script>
+<!-- Puter.js SDK is loaded LAZILY by popup.js (loadPuterSDK) — loading 364 KB
+     synchronously here made the side panel slow to open. -->
 <script src="popup.js"></script>
 </body>
 </html>
